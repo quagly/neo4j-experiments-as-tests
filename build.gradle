@@ -1,4 +1,5 @@
-apply plugin: "groovy"
+apply plugin: 'base'
+apply plugin: 'groovy'
 
 def neo4jVer  = '2.0.0-M03'
 def groovyVer = '2.1.6'
@@ -30,5 +31,17 @@ test {
 }
 
 task wrapper(type: Wrapper) {
-      gradleVersion = '1.6'
+  description = 'create gradlew wrapper, run this when upgrading gradle'  
+  gradleVersion = '1.6'
+}
+
+task createGraphGists ( dependsOn: 'classes', type: JavaExec ) {
+  description = 'parses spock tests and generates GraphGist adoc files'
+  main 'createGraphGists'
+  classpath = sourceSets.main.runtimeClasspath
+  ext.srcDir = new File( projectDir, 'src/test/groovy' )
+  ext.destDir = new File( projectDir, 'out/graphGists' )
+  inputs.dir  srcDir 
+  outputs.dir destDir
+  destDir.mkdirs()
 }

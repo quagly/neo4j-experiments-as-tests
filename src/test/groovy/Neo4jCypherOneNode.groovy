@@ -23,7 +23,9 @@ class Neo4jCypherOneNode extends spock.lang.Specification {
   def "create one node"() {
 
   setup: "query to create one node with one property"
-    cypher = "CREATE (n {name : 'Immanuel'})"
+    cypher = """
+      CREATE (n {name : 'Immanuel'})
+    """
 
   when: "execute query and capture stats"
     er = engine.execute(cypher)

@@ -15,6 +15,13 @@ in the root directory.
 
 The default task runs all tests
 
+There is also a task to convert spock tests to adocs to create githup gists
+for use at http://gist.neo4j.org/ [GitHub Gist]
+this does require that the Spocks test follow a format that is not yet documented
+
+usage 
+> ./gradlew createGraphGists
+
 ## This project is my first use of these technologies
 
 * github

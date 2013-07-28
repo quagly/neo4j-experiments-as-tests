@@ -22,7 +22,9 @@ class NeoCypherOneLabel extends spock.lang.Specification {
   def "create Plato"() {
 
   setup: "query to create plato with philosopher label"
-    cypher = "CREATE (n:Philosopher { name : 'Plato' , url : 'http://dbpedia.org/resource/Plato' })"
+    cypher = """
+      CREATE (n:Philosopher { name : 'Plato' , url : 'http://dbpedia.org/resource/Plato' })
+    """
 
   when: "execute query and capture stats"
     er = engine.execute(cypher)
@@ -39,7 +41,9 @@ class NeoCypherOneLabel extends spock.lang.Specification {
   def "create Aristotle"() {
 
   setup: "query to create Aristotle with philosopher label"
-    cypher = "CREATE (n:Philosopher { name : 'Aristotle' , url : 'http://dbpedia.org/resource/Aristotle' })"
+    cypher = """
+      CREATE (n:Philosopher { name : 'Aristotle' , url : 'http://dbpedia.org/resource/Aristotle' })
+    """
 
   when: "execute query and capture stats"
     er = engine.execute(cypher)
