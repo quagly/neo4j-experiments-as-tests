@@ -30,11 +30,6 @@ test {
   }
 }
 
-task wrapper(type: Wrapper) {
-  description = 'create gradlew wrapper, run this when upgrading gradle'  
-  gradleVersion = '1.6'
-}
-
 task createGraphGists ( dependsOn: 'classes', type: JavaExec ) {
   description = 'parses spock tests and generates GraphGist adoc files'
   main 'createGraphGists'

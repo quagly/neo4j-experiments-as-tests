@@ -60,6 +60,7 @@ Generated on ${new Date()}
     if ( isCypher && line =~ /^\W*"""/ ) {
       isCypher = false 
       outputFile << "----\n"
+      outputFile << "//table\n"
     }
 
     // output Cypher
