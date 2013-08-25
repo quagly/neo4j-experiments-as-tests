@@ -58,25 +58,33 @@ class NeoCypherOneLabel extends spock.lang.Specification {
   }
 
   def "get All Philosphers"() {
+    // This query makes no changes but still requires a transaction
+    // as of 2.0.0M4 which introduced mandatory transactions
+    // perhaps this is a bug?
 
   setup: "query to return all nodes with label philosopher"
     cypher = """
       MATCH p:Philosopher
       RETURN p as philosopher
   """
+  Transaction tx
+  def philosophers = []
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
-    qs = er.queryStatistics
-    // get all name properties from list of nodes
-    // simpler and better performance it just return the properties needed from cypher
-    result = er.columnAs("philosopher").toList().collect { it.getProperty("name") }.sort()
+    tx = graphDb.beginTx()
+    try {
+      er = engine.execute(cypher)
+      qs = er.queryStatistics
+      philosophers = er.columnAs("philosopher").toList().collect { it.getProperty("name") }.sort()
+      tx.success()
+    } finally {
+      tx.finish()
+    }
         
   then: "validate expected stats"
     ! qs.containsUpdates()
-    result.size == 2
-    result.equals([ 'Aristotle', 'Plato' ])
-
+    philosophers.size == 2
+    philosophers.equals([ 'Aristotle', 'Plato' ])
   }
 
 }

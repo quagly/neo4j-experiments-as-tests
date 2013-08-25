@@ -43,22 +43,39 @@ class Neo4jCypherOneNode extends spock.lang.Specification {
     setup: "query to add property to node"
     cypher = """
       START n=node(*)
-      WHERE n.name! = 'Immanuel'
+      WHERE n.name = 'Immanuel'
       SET n.lastName = 'Kant'
       RETURN n as kant 
     """
+    Transaction tx
+    def lastName
 
     when: "execute query and capture stats"
-    er = engine.execute(cypher)
-    qs = er.queryStatistics
-    result = er.columnAs("kant").toList()
+    /*
+     * new in 2.0.0M4 is mandatory transactions
+     * cypher will automatically create a transaction as neccessary
+     * however, the result will be closed when the transaction is 
+     * automatically closed so cannot be tested
+     * I believe that two cypher queries could be simpler
+     * one to modify, and one to query
+     * then explicit transactions could be avoided
+     */
+    tx = graphDb.beginTx()
+    try {
+      er = engine.execute(cypher)
+      qs = er.queryStatistics
+      result = er.columnAs("kant").toList()
+      lastName = result.first().getProperty("lastName")
+      tx.success()
+    } finally {
+      tx.finish()
+    }
 
     then: "one property updated and lastName is Kant"
     qs.containsUpdates()
     qs.propertiesSet == 1
     result.size == 1
-    // query returns node rather than property so get property to compare
-    result.first().getProperty("lastName").equals('Kant')
+    lastName.equals('Kant')
   }
 
   def "remove name property and add firstName property"() {
@@ -66,23 +83,34 @@ class Neo4jCypherOneNode extends spock.lang.Specification {
     setup: "query to add and remove property from node"
     cypher = """
       START n=node(*)
-      WHERE n.name! = 'Immanuel'
+      WHERE n.name = 'Immanuel'
       SET n.firstName = 'Immanuel'
       REMOVE n.name
       RETURN n as kant 
     """
+    Transaction tx
+    Boolean hasName
+    def firstName
 
     when: "execute query and capture stats"
-    er = engine.execute(cypher)
-    qs = er.queryStatistics
-    result = er.columnAs("kant").toList()
+    tx = graphDb.beginTx()
+    try {
+      er = engine.execute(cypher)
+      qs = er.queryStatistics
+      result = er.columnAs("kant").toList()
+      hasName = result.first().hasProperty("name")
+      firstName = result.first().getProperty("firstName")
+      tx.success()
+    } finally {
+      tx.finish()
+    }
 
     then: "name property removed and firstName added"
     qs.containsUpdates()
     qs.propertiesSet == 2
     result.size == 1
-    ! result.first().hasProperty("name")
-    result.first().getProperty("firstName").equals('Immanuel')
+    ! hasName 
+    firstName.equals('Immanuel')
   }
 
   def "use AND HAS and RegEx"() {
@@ -92,24 +120,35 @@ class Neo4jCypherOneNode extends spock.lang.Specification {
       START n=node(*)
       WHERE
         HAS(n.firstName)           // test existence
-        AND n.firstName! = 'Immanuel'  // test not Null and equal
+        AND n.firstName = 'Immanuel'  // equal
         AND n.lastName =~ '^K.*'   // RegEx
         AND n.firstName =~ '(?i)immANuEl'      // case insensitive RegEx
         AND n.lastName IN [ 'Kant', 'Kan', 'NoIKant', 'YesIKan' ]  // in list
       RETURN n as kant 
     """
+    Transaction tx
+    def firstName
+    def lastName
 
     when: "execute query and capture stats"
-    er = engine.execute(cypher)
-    qs = er.queryStatistics
-    result = er.columnAs("kant").toList()
+    tx = graphDb.beginTx()
+    try {
+      er = engine.execute(cypher)
+      qs = er.queryStatistics
+      result = er.columnAs("kant").toList()
+      firstName = result.first().getProperty("firstName")
+      lastName = result.first().getProperty("lastName")
+      tx.success()
+    } finally {
+      tx.finish()
+    }
   
-    then: "returns Mike West node"
+    then: "returns Immanuel Kant node"
     !qs.containsUpdates()
     qs.propertiesSet == 0 
     result.size == 1
-    result.first().getProperty("firstName").equals('Immanuel')
-    result.first().getProperty("lastName").equals('Kant')
+    firstName.equals('Immanuel')
+    lastName.equals('Kant')
   }
 
   def "delete node"() {
@@ -117,7 +156,7 @@ class Neo4jCypherOneNode extends spock.lang.Specification {
     setup: "query to delete node"
     cypher = """
       START n=node(*)
-      WHERE n.firstName! = 'Immanuel'
+      WHERE n.firstName = 'Immanuel'
       DELETE n
     """
 

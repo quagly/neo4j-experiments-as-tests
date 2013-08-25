@@ -3,14 +3,13 @@ import org.neo4j.graphdb.*
 import org.neo4j.cypher.javacompat.* 
 import org.neo4j.test.*
 
-class NeoCypherOneRelationship extends spock.lang.Specification {
+class Neo4jCypherOneRelationship extends spock.lang.Specification {
   // class
   @Shared GraphDatabaseService graphDb
   @Shared ExecutionEngine engine
 
   // instance
   String cypher
-  Relationship rel 
   ExecutionResult er
   QueryStatistics qs
 
@@ -67,18 +66,34 @@ class NeoCypherOneRelationship extends spock.lang.Specification {
       CREATE p-[r:INFLUENCED]->a
       RETURN r
     """
+    Transaction tx
+    Relationship rel 
+    def reltype
+    def startName
+    def endName
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
-    qs = er.queryStatistics
-    rel = er.columnAs("r").next()
+    tx = graphDb.beginTx()
+    try {
+      er = engine.execute(cypher)
+      qs = er.queryStatistics
+      rel = er.columnAs("r").next()
+      reltype = rel.type.name()
+      startName = rel.startNode.getProperty('name')
+      endName = rel.endNode.getProperty('name')
+
+      
+      tx.success()
+    } finally {
+      tx.finish()
+    }
 
   then: "validate expected stats"
     qs.containsUpdates()
     qs.relationshipsCreated == 1
-    rel.type.name().equals('INFLUENCED')
-    rel.startNode.getProperty('name').equals('Plato')
-    rel.endNode.getProperty('name').equals('Aristotle')
+    reltype.equals('INFLUENCED')
+    startName.equals('Plato')
+    endName.equals('Aristotle')
   }
 
   def "delete relationship Plato influenced Aristotle"() {

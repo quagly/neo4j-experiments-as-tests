@@ -22,11 +22,4 @@ this does require that the Spocks test follow a format that is not yet documente
 usage 
 > ./gradlew createGraphGists
 
-## This project is my first use of these technologies
 
-* github
-* gradle
-* neo4j
-* spock
-
-any feedback on my usage is appriciated.  
