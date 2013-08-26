@@ -15,12 +15,15 @@ class NeoCypherSimplePath extends spock.lang.Specification {
 
   @Shared graphDb = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().newGraphDatabase()
   @Shared ExecutionEngine engine = new ExecutionEngine( graphDb )
+
+  //instance
   String cypher   // cypher query string
   def nodeProperties = [:]
   ExecutionResult er
   QueryStatistics qs
   Relationship rel
   def names = []
+  def relations = []
 
   def "initialize nodes and relations"() {
 
@@ -74,7 +77,6 @@ class NeoCypherSimplePath extends spock.lang.Specification {
        MATCH a:Philosopher-[:INFLUENCES]->b:Philosopher
        RETURN a.name as InfluencerName, b.name as InfluenceeName
     """
-    def relations = []
 
   when: "execute query and capture stats"
     er = engine.execute(cypher)
@@ -100,7 +102,6 @@ class NeoCypherSimplePath extends spock.lang.Specification {
        MATCH a:Philosopher-[:INFLUENCES*2]->b:Philosopher
        RETURN a.name as InfluencerName, b.name as InfluenceeName
     """
-    def relations = []
 
   when: "execute query and capture stats"
     er = engine.execute(cypher)
@@ -125,7 +126,6 @@ class NeoCypherSimplePath extends spock.lang.Specification {
        MATCH a:Philosopher-[:INFLUENCES]->b:Philosopher-[:INFLUENCES]->c:Philosopher
        RETURN a.name as InfluencerName, b.name as MediatorName, c.name as InfluenceeName
     """
-    def relations = []
 
   when: "execute query and capture stats"
     er = engine.execute(cypher)
@@ -154,7 +154,6 @@ class NeoCypherSimplePath extends spock.lang.Specification {
        WHERE  b.name = 'Aristotle'
        RETURN DISTINCT a.name as InfluencerName, b.name as InfluenceeName
     """
-    def relations = []
 
   when: "execute query and capture stats"
     er = engine.execute(cypher)
