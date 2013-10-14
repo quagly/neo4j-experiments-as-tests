@@ -80,7 +80,6 @@ class NeoCypherOneLabel extends spock.lang.Specification {
     } finally {
       tx.finish()
     }
-        
   then: "validate expected stats"
     ! qs.containsUpdates()
     philosophers.size == 2

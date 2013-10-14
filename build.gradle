@@ -2,12 +2,14 @@ apply plugin: 'base'
 apply plugin: 'groovy'
 
 def neo4jVer  = '2.0.0-M05'
-def groovyVer = '2.1.7'
+def groovyVer = '2.1.8'
 def spockVer = '0.7-groovy-2.0'
 
 defaultTasks 'test'
 
 repositories {
+  // added jcenter 
+  jcenter()
   mavenCentral()
 }
 
