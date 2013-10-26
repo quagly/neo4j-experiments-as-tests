@@ -6,7 +6,7 @@ import org.neo4j.test.*
 /**
  * Demonstrate philosophers, schools and schoolType
  **/
-class NeoCypherSameSchoolTypeInfluence extends spock.lang.Specification {
+class Neo4jCypherSameSchoolTypeInfluence extends spock.lang.Specification {
   // class
   @Shared GraphDatabaseService graphDb
   @Shared ExecutionEngine engine
@@ -65,7 +65,7 @@ class NeoCypherSameSchoolTypeInfluence extends spock.lang.Specification {
      * but I do not understand when it works and when it doesn't
      */
     cypher = """
-       MATCH st2:SchoolType<-[:TYPE_OF]-s2:School<-[:MEMBER_OF]-p2:Philosopher<-[:INFLUENCES]-p1:Philosopher-[:MEMBER_OF]->s1:School-[:TYPE_OF]->st1:SchoolType
+       MATCH (st2:SchoolType)<-[:TYPE_OF]-(s2:School)<-[:MEMBER_OF]-(p2:Philosopher)<-[:INFLUENCES]-(p1:Philosopher)-[:MEMBER_OF]->(s1:School)-[:TYPE_OF]->(st1:SchoolType)
        WHERE  st2 = st1 // node equality
        RETURN p1.name as p1Name, s1.name as s1Name, st1.name as st1Name, p2.name as p2Name, s2.name as s2Name, st2.name as st2Name
     """

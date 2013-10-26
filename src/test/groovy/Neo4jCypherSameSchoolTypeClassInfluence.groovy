@@ -6,7 +6,7 @@ import org.neo4j.test.*
 /**
  * Demonstrate philosophers, schools, schoolType, and schoolTypeClass 
  **/
-class NeoCypherSameSchoolTypeClassInfluence extends spock.lang.Specification {
+class Neo4jCypherSameSchoolTypeClassInfluence extends spock.lang.Specification {
    
   // class
   @Shared GraphDatabaseService graphDb
@@ -67,7 +67,7 @@ class NeoCypherSameSchoolTypeClassInfluence extends spock.lang.Specification {
 
   setup: "query for philosophers with school type class"
     cypher = """
-       MATCH p1:Philosopher-[:MEMBER_OF]->s1:School-[:TYPE_OF]->st1:SchoolType-[:SUBCLASS_OF]->stc1:SchoolType
+       MATCH (p1:Philosopher)-[:MEMBER_OF]->(s1:School)-[:TYPE_OF]->(st1:SchoolType)-[:SUBCLASS_OF]->(stc1:SchoolType)
        WHERE  stc1.name = 'movement'
        RETURN p1.name as p1Name, s1.name as s1Name, st1.name as st1Name, stc1.name as stc1Name
     """
@@ -92,7 +92,7 @@ class NeoCypherSameSchoolTypeClassInfluence extends spock.lang.Specification {
 
   setup: "query for influential philosophers from the same school type"
     cypher = """
-       MATCH st2:SchoolType<-[:TYPE_OF]-s2:School<-[:MEMBER_OF]-p2:Philosopher<-[:INFLUENCES]-p1:Philosopher-[:MEMBER_OF]->s1:School-[:TYPE_OF]->st1:SchoolType
+       MATCH (st2:SchoolType)<-[:TYPE_OF]-(s2:School)<-[:MEMBER_OF]-(p2:Philosopher)<-[:INFLUENCES]-(p1:Philosopher)-[:MEMBER_OF]->(s1:School)-[:TYPE_OF]->(st1:SchoolType)
        WHERE  st2 = st1 // node equality
        RETURN p1.name as p1Name, s1.name as s1Name, st1.name as st1Name, p2.name as p2Name, s2.name as s2Name, st2.name as st2Name
     """
@@ -127,7 +127,7 @@ class NeoCypherSameSchoolTypeClassInfluence extends spock.lang.Specification {
   setup: "query for influential philosophers from the same school type class"
 
     cypher = """
-       MATCH p=st2:SchoolType<-[:TYPE_OF]-s2:School<-[:MEMBER_OF]-p2:Philosopher<-[:INFLUENCES]-p1:Philosopher-[:MEMBER_OF]->s1:School-[:TYPE_OF]->st1:SchoolType-[:SUBCLASS_OF]->stc:SchoolType
+       MATCH p=(st2:SchoolType)<-[:TYPE_OF]-(s2:School)<-[:MEMBER_OF]-(p2:Philosopher)<-[:INFLUENCES]-(p1:Philosopher)-[:MEMBER_OF]->(s1:School)-[:TYPE_OF]->(st1:SchoolType)-[:SUBCLASS_OF]->(stc:SchoolType)
        WHERE (stc)<-[:SUBCLASS_OF]-(st2)
        RETURN p1.name as p1Name, s1.name as s1Name, st1.name as st1Name, p2.name as p2Name, s2.name as s2Name, st2.name as st2Name, stc.name as stcName
     """

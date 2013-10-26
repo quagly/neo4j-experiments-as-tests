@@ -61,7 +61,7 @@ class Neo4jCypherOneRelationship extends spock.lang.Specification {
   setup: "query to get Aristotle and Plato and create influenced relationship"
     // performance is better to have query return just name rather than nodes
     cypher = """ 
-      MATCH p:Philosopher, a:Philosopher
+      MATCH (p:Philosopher), (a:Philosopher)
       WHERE p.name = 'Plato' AND a.name = 'Aristotle'
       CREATE p-[r:INFLUENCED]->a
       RETURN r
@@ -100,7 +100,7 @@ class Neo4jCypherOneRelationship extends spock.lang.Specification {
 
   setup: "query to delete INFLUENCED relationship between Aristotle and Plato"
     cypher = """ 
-      MATCH p:Philosopher-[r:INFLUENCED]->a:Philosopher
+      MATCH (p:Philosopher)-[r:INFLUENCED]->(a:Philosopher)
       WHERE p.name = 'Plato' AND a.name = 'Aristotle'
       DELETE r
     """
@@ -118,7 +118,7 @@ class Neo4jCypherOneRelationship extends spock.lang.Specification {
 
   setup: "query to delete all philosopher Nodes"
     cypher = """ 
-      MATCH p:Philosopher
+      MATCH (p:Philosopher)
       DELETE p
     """
 

@@ -3,7 +3,7 @@ import org.neo4j.graphdb.*
 import org.neo4j.cypher.javacompat.* 
 import org.neo4j.test.*
 
-class NeoCypherOneLabel extends spock.lang.Specification {
+class Neo4jCypherOneLabel extends spock.lang.Specification {
   // class
   @Shared GraphDatabaseService graphDb
   @Shared ExecutionEngine engine
@@ -64,7 +64,7 @@ class NeoCypherOneLabel extends spock.lang.Specification {
 
   setup: "query to return all nodes with label philosopher"
     cypher = """
-      MATCH p:Philosopher
+      MATCH (p:Philosopher)
       RETURN p as philosopher
   """
   Transaction tx

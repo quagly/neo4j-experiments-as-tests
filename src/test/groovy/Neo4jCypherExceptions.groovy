@@ -70,7 +70,7 @@ class Neo4jCypherExceptions extends spock.lang.Specification {
 
   setup: "get philosophers"
     def cypher = """
-      MATCH p:Philosopher
+      MATCH (p:Philosopher)
       RETURN p as philosopher
     """
 

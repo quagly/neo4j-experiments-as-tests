@@ -7,7 +7,7 @@ import org.neo4j.test.*
  * Demonstrate simple examples of working with paths
  * using three nodes and three relationships
  **/
-class NeoCypherSimplePath extends spock.lang.Specification {
+class Neo4jCypherSimplePath extends spock.lang.Specification {
   /*
    * this class needs to be modified to conform to standards
    * also add with statements to graph node names rather than return path
@@ -53,7 +53,7 @@ class NeoCypherSimplePath extends spock.lang.Specification {
 
   setup: "query to return all nodes with label philosopher"
     cypher = """
-       MATCH p:Philosopher
+       MATCH (p:Philosopher)
        RETURN p.name as PhilosopherNames
        ORDER BY p.name
     """
@@ -74,7 +74,7 @@ class NeoCypherSimplePath extends spock.lang.Specification {
   setup: "query to return philosopher pairs of who directly influences who"
     // find philosophers with an outgoing INFLUENCES relationship 
     cypher = """
-       MATCH a:Philosopher-[:INFLUENCES]->b:Philosopher
+       MATCH (a:Philosopher)-[:INFLUENCES]->(b:Philosopher)
        RETURN a.name as InfluencerName, b.name as InfluenceeName
     """
 
@@ -99,7 +99,7 @@ class NeoCypherSimplePath extends spock.lang.Specification {
   setup: "query to return philosopher pairs with influence at one remove"
     // find philosophers who influenced others indirectly through those they directly influenced
     cypher = """
-       MATCH a:Philosopher-[:INFLUENCES*2]->b:Philosopher
+       MATCH (a:Philosopher)-[:INFLUENCES*2]->(b:Philosopher)
        RETURN a.name as InfluencerName, b.name as InfluenceeName
     """
 
@@ -123,7 +123,7 @@ class NeoCypherSimplePath extends spock.lang.Specification {
     // find philosophers who influenced others indirectly through those they directly influenced
     // include the philosophers mediating this relationship
     cypher = """
-       MATCH a:Philosopher-[:INFLUENCES]->b:Philosopher-[:INFLUENCES]->c:Philosopher
+       MATCH (a:Philosopher)-[:INFLUENCES]->(b:Philosopher)-[:INFLUENCES]->(c:Philosopher)
        RETURN a.name as InfluencerName, b.name as MediatorName, c.name as InfluenceeName
     """
 
@@ -150,7 +150,7 @@ class NeoCypherSimplePath extends spock.lang.Specification {
     // 'Socrates Influences Aristotle' occurs twice, once for direct and once for indirect influence
     // DISTINCT will remove duplicates
     cypher = """
-       MATCH a:Philosopher-[:INFLUENCES*]->b:Philosopher
+       MATCH (a:Philosopher)-[:INFLUENCES*]->(b:Philosopher)
        WHERE  b.name = 'Aristotle'
        RETURN DISTINCT a.name as InfluencerName, b.name as InfluenceeName
     """
@@ -177,7 +177,7 @@ class NeoCypherSimplePath extends spock.lang.Specification {
 
   setup: "query to return pattern of who influenced Aristole at any depth"
     cypher = """
-       MATCH pattern = a:Philosopher-[:INFLUENCES*]->b:Philosopher
+       MATCH pattern = (a:Philosopher)-[:INFLUENCES*]->(b:Philosopher)
        WHERE  b.name = 'Aristotle'
        RETURN pattern 
     """
@@ -201,7 +201,7 @@ class NeoCypherSimplePath extends spock.lang.Specification {
   // there are two paths from Socrates to Aristotle, a 1 hop, and a 2 hop.  
   // get the shortest one - a direct relationship
     cypher = """
-       MATCH pattern = shortestPath(a:Philosopher-[:INFLUENCES*]->b:Philosopher)
+       MATCH pattern = shortestPath((a:Philosopher)-[:INFLUENCES*]->(b:Philosopher))
        WHERE  a.name = 'Socrates' AND b.name = 'Aristotle'
        RETURN a.name, b.name , length(pattern) as length
     """

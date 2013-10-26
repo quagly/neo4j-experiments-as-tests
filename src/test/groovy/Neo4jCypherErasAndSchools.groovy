@@ -8,7 +8,7 @@ import org.neo4j.test.*
  * using philosophers, eras, and schools
  * examples with direct relationships
  **/
-class NeoCypherErasAndSchools extends spock.lang.Specification {
+class Neo4jCypherErasAndSchools extends spock.lang.Specification {
 
   // class
   @Shared GraphDatabaseService graphDb
@@ -82,7 +82,7 @@ class NeoCypherErasAndSchools extends spock.lang.Specification {
 
   setup: "query to return all nodes with label philosopher"
     cypher = """
-       MATCH p:Philosopher
+       MATCH (p:Philosopher)
        RETURN p.name as PhilosopherNames
        ORDER BY p.name
     """
@@ -104,7 +104,7 @@ class NeoCypherErasAndSchools extends spock.lang.Specification {
     // get philosopher with any direct relationship to 
     // ancient philosophy era
     cypher = """
-       MATCH p:Philosopher-[]->e:Era
+       MATCH (p:Philosopher)-[]->(e:Era)
        WHERE e.name = 'Ancient philosophy' 
        RETURN p.name as PhilosopherNames
     """
@@ -126,7 +126,7 @@ class NeoCypherErasAndSchools extends spock.lang.Specification {
      * school that has a school type 
      */
     cypher = """
-       MATCH p:Philosopher-[:MEMBER_OF]->s:School-[:TYPE_OF]->st:SchoolType
+       MATCH (p:Philosopher)-[:MEMBER_OF]->(s:School)-[:TYPE_OF]->(st:SchoolType)
        RETURN DISTINCT p.name as PhilosopherNames
     """
 
@@ -147,7 +147,7 @@ class NeoCypherErasAndSchools extends spock.lang.Specification {
      * school that has a school type of 'Philosophical movements' 
      */
     cypher = """
-       MATCH p:Philosopher-[:MEMBER_OF]->s:School-[:TYPE_OF]->st:SchoolType
+       MATCH (p:Philosopher)-[:MEMBER_OF]->(s:School)-[:TYPE_OF]->(st:SchoolType)
        WHERE st.name = 'Philosophical movements'
        RETURN p.name as PhilosopherName, s.name as SchoolName
     """
@@ -179,7 +179,7 @@ class NeoCypherErasAndSchools extends spock.lang.Specification {
      * school that has a school type of 'movements' 
      */
     cypher = """
-       MATCH p:Philosopher-[r:MEMBER_OF]->s:School-[:TYPE_OF]->st:SchoolType-[:SUBCLASS_OF]->st2:SchoolType
+       MATCH (p:Philosopher)-[r:MEMBER_OF]->(s:School)-[:TYPE_OF]->(st:SchoolType)-[:SUBCLASS_OF]->(st2:SchoolType)
        WHERE st2.name = 'movement'
        RETURN p.name as pName , type(r) as rType , s.name as sName
     """
@@ -213,7 +213,7 @@ class NeoCypherErasAndSchools extends spock.lang.Specification {
   setup: "query for influential philosophers from the same school type class"
 
     cypher = """
-       MATCH p=st2:SchoolType<-[:TYPE_OF]-s2:School<-[:MEMBER_OF]-p2:Philosopher<-[:INFLUENCES]-p1:Philosopher-[:MEMBER_OF]->s1:School-[:TYPE_OF]->st1:SchoolType-[:SUBCLASS_OF]->stc:SchoolType
+       MATCH p=(st2:SchoolType)<-[:TYPE_OF]-(s2:School)<-[:MEMBER_OF]-(p2:Philosopher)<-[:INFLUENCES]-(p1:Philosopher)-[:MEMBER_OF]->(s1:School)-[:TYPE_OF]->(st1:SchoolType)-[:SUBCLASS_OF]->(stc:SchoolType)
        WHERE (stc)<-[:SUBCLASS_OF]-(st2)
        RETURN p1.name as p1Name, s1.name as s1Name, st1.name as st1Name, p2.name as p2Name, s2.name as s2Name, st2.name as st2Name, stc.name as stcName
     """
