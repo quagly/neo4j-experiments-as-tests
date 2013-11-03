@@ -7,6 +7,6 @@
 # gradle -Dtest.single=Neo4jCypherSameSchoolInfluence test
 # gradle -Dtest.single=Neo4jCypherSameSchoolTypeInfluence test
 # gradle -Dtest.single=Neo4jCypherSameSchoolTypeClassInfluence test
-# gradle -Dtest.single=Neo4jCypherSimplePath test
+ gradle -Dtest.single=Neo4jCypherSimplePath test
 # gradle -Dtest.single=Neo4jCypherErasAndSchools test
-gradle -Dtest.single=Neo4jCypherOneLabel test
+# gradle -Dtest.single=Neo4jCypherOneLabel test

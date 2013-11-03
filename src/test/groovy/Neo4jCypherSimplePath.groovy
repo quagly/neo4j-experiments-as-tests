@@ -13,17 +13,20 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
    * also add with statements to graph node names rather than return path
    */
 
-  @Shared graphDb = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().newGraphDatabase()
-  @Shared ExecutionEngine engine = new ExecutionEngine( graphDb )
+  @Shared GraphDatabaseService graphDb
+  @Shared ExecutionEngine engine
 
   //instance
   String cypher   // cypher query string
-  def nodeProperties = [:]
   ExecutionResult er
   QueryStatistics qs
-  Relationship rel
-  def names = []
-  def relations = []
+  def result = []
+
+
+  def setupSpec() {
+    graphDb = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().newGraphDatabase()
+    engine = new ExecutionEngine( graphDb )
+  }
 
   def "initialize nodes and relations"() {
 
@@ -61,11 +64,12 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
   when: "execute query and capture stats"
     er = engine.execute(cypher)
     qs = er.queryStatistics
-    names = er.columnAs("PhilosopherNames").toList()
+    result = er.columnAs("PhilosopherNames").toList().sort()
 
   then: "validate expected stats"
     ! qs.containsUpdates()
-    names.equals(['Aristotle', 'Plato', 'Socrates'])
+    result.size() == 3
+    result.equals(['Aristotle', 'Plato', 'Socrates'])
 
   }
 
@@ -81,17 +85,23 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
   when: "execute query and capture stats"
     er = engine.execute(cypher)
     qs = er.queryStatistics
-    er.each { row ->
-      relations << row['InfluencerName'] + " Influences " + row['InfluenceeName']  
-    }
+    result = er.iterator().toList().sort()
+    //println result
 
   then: "validate expected stats"
     ! qs.containsUpdates()
-    relations.sort().equals([
-      'Plato Influences Aristotle'
-      , 'Socrates Influences Aristotle'
-      , 'Socrates Influences Plato'
+    result.equals([
+      [  InfluenceeName:'Aristotle'
+       , InfluencerName:'Socrates'
+      ],[
+         InfluenceeName:'Plato'
+       , InfluencerName:'Socrates'
+      ],[
+         InfluenceeName:'Aristotle'
+       , InfluencerName:'Plato'
+      ]
     ])
+
   }
 
   def "get relationship once removed"() {
@@ -106,14 +116,16 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
   when: "execute query and capture stats"
     er = engine.execute(cypher)
     qs = er.queryStatistics
-    er.each { row ->
-      relations << row['InfluencerName'] + " Influences " + row['InfluenceeName']  
-    }
+    result = er.iterator().toList().sort()
+    //println result
 
   then: "validate expected stats"
     ! qs.containsUpdates()
-    relations.sort().equals([
-       'Socrates Influences Aristotle'
+    result.size() == 1
+    result.equals([
+      [  InfluenceeName:'Aristotle'
+       , InfluencerName:'Socrates'
+      ]
     ])
   }
 
@@ -130,14 +142,17 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
   when: "execute query and capture stats"
     er = engine.execute(cypher)
     qs = er.queryStatistics
-    er.each { row ->
-      relations << row['InfluencerName'] + " Influences " + row['MediatorName'] + " Influences " + row['InfluenceeName']  
-    }
+    result = er.iterator().toList().sort()
+    //println result
 
     then: "validate expected stats"
       ! qs.containsUpdates()
-      relations.sort().equals([
-         'Socrates Influences Plato Influences Aristotle'
+      result.size() == 1
+      result.equals([
+        [  InfluenceeName:'Aristotle'
+         , MediatorName:'Plato'
+         , InfluencerName:'Socrates'
+        ]
       ])
 
   }
@@ -158,19 +173,19 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
   when: "execute query and capture stats"
     er = engine.execute(cypher)
     qs = er.queryStatistics
-    er.each { row ->
-      relations << row['InfluencerName'] + " Influences " + row['InfluenceeName']  
-    }
-    // sort the relations list here to make then: test results more readable
-    relations.sort(true)
+    result = er.iterator().toList().sort()
+    //println result
 
     then: "validate expected stats"
       ! qs.containsUpdates()
-      relations.equals([
-        'Plato Influences Aristotle'
-        , 'Socrates Influences Aristotle'
+      result.size() == 2
+      result.equals([
+        [  InfluenceeName:'Aristotle'
+         , InfluencerName:'Socrates'
+        ],[InfluenceeName:'Aristotle'
+         , InfluencerName:'Plato'
+        ]
       ])
-
    }
 
   def "all influencers of Aristotle pattern"() {
@@ -181,17 +196,27 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
        WHERE  b.name = 'Aristotle'
        RETURN pattern 
     """
+    Transaction tx
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
-    qs = er.queryStatistics
+    // I don't understand why getting this result requires a transaction context
+    // maybe try again in a future version ( this is 2.0.0M6 )
+    tx = graphDb.beginTx()
+    try {
+      er = engine.execute(cypher)
+      qs = er.queryStatistics
+      result = er.iterator().toList().sort()
+      tx.success()
+    } finally {
+      tx.finish()
+    }
 
   then: "validate expected stats"
       // because patterns return internal ids 
       // just checking that we got three of them rather than the values
       // could also return length(pattern) and verify = [1,2]
       ! qs.containsUpdates()
-      er.iterator().size() == 3
+      result.size() == 3
 
   }
 
@@ -203,25 +228,25 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
     cypher = """
        MATCH pattern = shortestPath((a:Philosopher)-[:INFLUENCES*]->(b:Philosopher))
        WHERE  a.name = 'Socrates' AND b.name = 'Aristotle'
-       RETURN a.name, b.name , length(pattern) as length
+       RETURN a.name as aName, b.name as bName , length(pattern) as length
     """
-    def length
-    def size = 0
 
   when: "execute query and capture stats"
     er = engine.execute(cypher)
     qs = er.queryStatistics
-    er.each { row ->
-      size++
-      length = row['length'] 
-    }
+    result = er.iterator().toList().sort()
+    //println result
 
   then: "validate expected stats"
       // because patterns return internal ids 
       // just checking length and size 
       ! qs.containsUpdates()
-      length == 1
-      size == 1
+      result.size() == 1
+      result.equals([
+        [  aName:'Socrates'
+         , length:1
+         , bName:'Aristotle']
+      ])
 
   }
 
