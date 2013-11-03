@@ -192,9 +192,9 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
 
   setup: "query to return pattern of who influenced Aristole at any depth"
     cypher = """
-       MATCH pattern = (a:Philosopher)-[:INFLUENCES*]->(b:Philosopher)
+       MATCH path = (a:Philosopher)-[:INFLUENCES*]->(b:Philosopher)
        WHERE  b.name = 'Aristotle'
-       RETURN pattern 
+       RETURN path 
     """
     Transaction tx
 
@@ -212,9 +212,11 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
     }
 
   then: "validate expected stats"
-      // because patterns return internal ids 
+      // because paths return internal ids 
       // just checking that we got three of them rather than the values
-      // could also return length(pattern) and verify = [1,2]
+      // could also return length(path) and verify = [1,2]
+      // could also return NODES(path) or for more control EXTRACT(path) 
+      // specifying what to extract.  See cypher doc on collection functions
       ! qs.containsUpdates()
       result.size() == 3
 
@@ -226,9 +228,9 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
   // there are two paths from Socrates to Aristotle, a 1 hop, and a 2 hop.  
   // get the shortest one - a direct relationship
     cypher = """
-       MATCH pattern = shortestPath((a:Philosopher)-[:INFLUENCES*]->(b:Philosopher))
+       MATCH path = shortestPath((a:Philosopher)-[:INFLUENCES*]->(b:Philosopher))
        WHERE  a.name = 'Socrates' AND b.name = 'Aristotle'
-       RETURN a.name as aName, b.name as bName , length(pattern) as length
+       RETURN a.name as aName, b.name as bName , length(path) as length
     """
 
   when: "execute query and capture stats"
