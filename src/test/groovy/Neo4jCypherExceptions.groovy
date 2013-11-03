@@ -12,6 +12,7 @@ class Neo4jCypherExceptions extends spock.lang.Specification {
   // instance
   String cypher
   ExecutionResult er
+  QueryStatistics qs
   def result = []
 
   def setupSpec() {
@@ -60,13 +61,7 @@ class Neo4jCypherExceptions extends spock.lang.Specification {
 
   }
 
-  def "transaction bug?"() {
-  /* 
-   * just select gives NotInTransactionException 
-   * no transaction should be created
-   * I think this is a bug in 2.0.0M4
-   * creating test to detect if it is fixed
-   */
+  def "transaction required for read only access"() {
 
   setup: "get philosophers"
     def cypher = """
@@ -81,6 +76,36 @@ class Neo4jCypherExceptions extends spock.lang.Specification {
 
   then: "validate correct exception thrown"
     thrown org.neo4j.graphdb.NotInTransactionException 
+
+  }
+
+  def "unique contraint violation"() {
+    /* unique constraints are new in 2.0.0M5
+     * as part of option schema feature of 2.0
+     * verify exception thrown on duplicate
+     */
+
+  setup: "get philosophers"
+    // define contraint
+    def cypherConstraint = """
+      CREATE CONSTRAINT ON (p:Philosopher) 
+      ASSERT p.name IS UNIQUE
+    """
+    // duplicate names
+    def cypher = """
+      CREATE
+      ( Ockham:Philosopher {name:'William'})
+      , ( James:Philosopher { name: 'William'})
+    """
+
+  when: "create contraint and violate it to throw exception"
+    er = engine.execute(cypherConstraint)
+    qs = er.queryStatistics
+    er = engine.execute(cypher)
+
+  then: "validate correct exception thrown"
+    qs.constraintsAdded == 1
+    thrown org.neo4j.cypher.CypherExecutionException
 
   }
 
