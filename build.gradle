@@ -2,7 +2,7 @@ apply plugin: 'base'
 apply plugin: 'groovy'
 
 def neo4jVer  = '2.0.0-M06'
-def groovyVer = '2.1.9'
+def groovyVer = '2.2.0'
 def spockVer = '0.7-groovy-2.0'
 
 defaultTasks 'test'
