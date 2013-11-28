@@ -164,9 +164,11 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
     // note use of DISTINCT
     // 'Socrates Influences Aristotle' occurs twice, once for direct and once for indirect influence
     // DISTINCT will remove duplicates
+    // show use of new MATCH clause filter.  New in 2.0.0-RC
+    // no need for a WHERE clause here anymore
     cypher = """
-       MATCH (a:Philosopher)-[:INFLUENCES*]->(b:Philosopher)
-       WHERE  b.name = 'Aristotle'
+       MATCH (a:Philosopher)-[:INFLUENCES*]->(b:Philosopher{name: 'Aristotle'})
+       // WHERE  b.name = 'Aristotle'
        RETURN DISTINCT a.name as InfluencerName, b.name as InfluenceeName
     """
 
