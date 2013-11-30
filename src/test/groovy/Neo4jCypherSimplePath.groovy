@@ -8,10 +8,6 @@ import org.neo4j.test.*
  * using three nodes and three relationships
  **/
 class Neo4jCypherSimplePath extends spock.lang.Specification {
-  /*
-   * this class needs to be modified to conform to standards
-   * also add with statements to graph node names rather than return path
-   */
 
   @Shared GraphDatabaseService graphDb
   @Shared ExecutionEngine engine
