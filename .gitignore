@@ -1,4 +1,4 @@
 .gradle
-.swp
+*.swp
 /build
 /out
