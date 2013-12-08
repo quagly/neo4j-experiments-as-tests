@@ -126,7 +126,10 @@ class Neo4jCypherCollection extends spock.lang.Specification {
 
   }
 
-  def "collect relationships"() {
+  def "collect relationship types"() {
+  // collect all relationship types for all paths.  Get distinct in code.
+  // see "collect distinct relationship types" for an example of doing all
+  // processing in cypher
 
   setup: "query to collect all Relationship Types from Philosopher Nodes to SchoolType nodes"
   // store distinct relationship types as a set
@@ -149,6 +152,35 @@ class Neo4jCypherCollection extends spock.lang.Specification {
     ! qs.containsUpdates()
     relTypes.size() == 4 
     relTypes.sort().equals(['INFLUENCES', 'MEMBER_OF', 'SUBCLASS_OF', 'TYPE_OF'])
+  }
+
+  def "collect distinct relationship types"() {
+
+  setup: "query to collect all Relationship Types from Philosopher Nodes to SchoolType nodes"
+  // shows how to collect all RELATIONSHIPS for all paths and extract thier distinct types 
+  // note use of reduce to simulate a nested loop 
+  // and CASE to append an empty list if type exists for distinct 
+    cypher = """
+      MATCH p=(a:Philosopher)-[rel*]->(b:SchoolType) 
+      WITH collect(rel) AS allr 
+      RETURN REDUCE(allDistR =[], rcol IN allr | 
+        reduce(distR = allDistR, r IN rcol | 
+          distR +  CASE WHEN type(r) IN distR  THEN []  ELSE type(r) END 
+        )
+      ) as RelationshipTypes
+    """
+
+  when: "execute query and capture stats"
+    er = engine.execute(cypher)
+    qs = er.queryStatistics
+    result = er.columnAs("RelationshipTypes").toList()
+    println result.toList().first().toList().sort()
+
+  then: "validate expected stats"
+    ! qs.containsUpdates()
+    // result contains one collection
+    result.size() == 1 
+    result.toList().first().toList().sort().equals(['INFLUENCES', 'MEMBER_OF', 'SUBCLASS_OF', 'TYPE_OF'])
   }
 
 }
