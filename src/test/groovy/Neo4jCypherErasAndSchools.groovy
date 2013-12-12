@@ -94,7 +94,7 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
 
   then: "validate expected stats"
     ! qs.containsUpdates()
-    result.equals(['Aristotle', 'Plato', 'Socrates'])
+    result.sort().equals(['Aristotle', 'Plato', 'Socrates'])
 
   }
 
@@ -116,7 +116,7 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
 
   then: "validate expected stats"
     ! qs.containsUpdates()
-    result.equals(['Aristotle', 'Plato', 'Socrates'])
+    result.sort().equals(['Aristotle', 'Plato', 'Socrates'])
   }
 
   def "all philosophers who are members of a school with a school type"() {
@@ -137,7 +137,7 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
 
   then: "validate expected stats"
     ! qs.containsUpdates()
-    result.equals(['Aristotle', 'Plato'])
+    result.sort().equals(['Aristotle', 'Plato'])
   }
 
   def "all philosophers who are members of school of type Philosophical movements"() {
@@ -155,13 +155,13 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
   when: "execute query and capture stats"
     er = engine.execute(cypher)
     qs = er.queryStatistics
-    result = er.iterator().toList().sort()
+    result = er.iterator().toList()
     //println result 
 
 
   then: "validate expected stats"
     ! qs.containsUpdates()
-    result.equals([
+    result.sort().equals([
       [   SchoolName:'Peripatetic school'
         , PhilosopherName:'Aristotle'
       ],[ 
@@ -187,12 +187,12 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
   when: "execute query and capture stats"
     er = engine.execute(cypher)
     qs = er.queryStatistics
-    result = er.iterator().toList().sort()
+    result = er.iterator().toList()
     //println result
 
   then: "validate expected stats"
     ! qs.containsUpdates()
-    result.equals([
+    result.sort().equals([
       [   pName:'Plato'
         , rType:'MEMBER_OF'
         , sName:'Platonism'
@@ -221,13 +221,13 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
   when: "execute query and capture stats"
     er = engine.execute(cypher)
     qs = er.queryStatistics
-    result = er.iterator().toList().sort()
+    result = er.iterator().toList()
     //println result 
 
   then: "validate expected stats"
     ! qs.containsUpdates()
     result.size() == 1
-    result.equals([
+    result.sort().equals([
       [  s1Name:'Platonism'
        , p1Name:'Plato'
        , st2Name:'Philosophical movements'

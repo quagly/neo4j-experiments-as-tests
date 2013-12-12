@@ -163,18 +163,18 @@ class Neo4jCypherCollection extends spock.lang.Specification {
     cypher = """
       MATCH p=(a:Philosopher)-[rel*]->(b:SchoolType) 
       WITH collect(rel) AS allr 
-      RETURN REDUCE(allDistR =[], rcol IN allr | 
+      RETURN (REDUCE(allDistR =[], rcol IN allr | 
         reduce(distR = allDistR, r IN rcol | 
-          distR +  CASE WHEN type(r) IN distR  THEN []  ELSE type(r) END 
+          distR + CASE WHEN type(r) IN distR  THEN []  ELSE type(r) END
         )
-      ) as RelationshipTypes
+      )) as RelationshipTypes
     """
 
   when: "execute query and capture stats"
     er = engine.execute(cypher)
     qs = er.queryStatistics
     result = er.columnAs("RelationshipTypes").toList()
-    println result.toList().first().toList().sort()
+    //println result.toList().first().toList().sort()
 
   then: "validate expected stats"
     ! qs.containsUpdates()

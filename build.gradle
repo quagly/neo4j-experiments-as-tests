@@ -1,7 +1,7 @@
 apply plugin: 'base'
 apply plugin: 'groovy'
 
-def neo4jVer  = '2.0.0-RC1'
+def neo4jVer  = '2.0.0'
 def groovyVer = '2.2.1'
 def spockVer = '0.7-groovy-2.0'
 
