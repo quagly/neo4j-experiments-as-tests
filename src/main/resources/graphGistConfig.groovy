@@ -2,4 +2,5 @@
 excludeFiles=[
   "Neo4jCypherExceptions"
   ,"Neo4jCypherSimplePath"
+  ,"Neo4jCypherReadFile"
 ]

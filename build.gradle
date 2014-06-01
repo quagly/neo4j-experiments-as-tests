@@ -21,6 +21,7 @@ dependencies {
 
   testCompile "org.spockframework:spock-core:${spockVer}" 
   testCompile "org.neo4j:neo4j-kernel:${neo4jVer}:tests"
+
 }
 
 // say why if test fails
@@ -44,3 +45,26 @@ task createGraphGists ( dependsOn: 'classes', type: JavaExec ) {
   outputs.dir destDir
   destDir.mkdirs()
 }
+
+// may wish to seperate this into classes config and test config.
+// for now they are the same
+task createGroovyConfig {
+  description = 'create groovy config file of project properties'
+  ext.configSlurperMain = new File( projectDir, "/src/main/resources/project.groovy")
+  ext.configSlurperTest = new File( projectDir, "/src/test/resources/project.groovy")
+  // can't use outputs as changes made here will never apply
+  // becaues the output files haven't changed
+  //outputs.file configSlurperMain 
+  //outputs.file configSlurperTest
+  ext.configString = """\
+  projectDir =  '${projectDir}'
+  """
+  // only run if files need to change
+  doLast{
+    println "creating configSlurperFiles"
+    configSlurperMain.setText(configString)
+    configSlurperTest.setText(configString)
+  }
+}
+
+classes.dependsOn("createGroovyConfig")

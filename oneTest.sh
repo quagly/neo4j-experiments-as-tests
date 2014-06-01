@@ -11,4 +11,5 @@
 # gradle -Dtest.single=Neo4jCypherSimplePath test
 # gradle -Dtest.single=Neo4jCypherErasAndSchools test
 # gradle -Dtest.single=Neo4jCypherOneLabel test
-gradle -Dtest.single=Neo4jCypherMerge test
+# gradle -Dtest.single=Neo4jCypherMerge test
+gradle -Dtest.single=Neo4jCypherReadFile test
