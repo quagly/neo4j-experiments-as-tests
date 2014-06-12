@@ -24,7 +24,7 @@ class Neo4jCypherReadFile extends spock.lang.Specification {
     graphDb = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().newGraphDatabase()
     engine = new ExecutionEngine( graphDb )
     config = new ConfigSlurper().parse(this.getClass().getClassLoader().getResource("project.groovy"))
-    println config.projectDir
+    //println config.projectDir
   }
 
   def "initialize philosopher nodes from file"() {
