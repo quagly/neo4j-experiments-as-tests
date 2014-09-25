@@ -38,7 +38,8 @@ test {
 task createGraphGists ( dependsOn: 'classes', type: JavaExec ) {
   description = 'parses spock tests and generates GraphGist adoc files'
   main 'createGraphGists'
-  classpath = sourceSets.main.runtimeClasspath
+  // this was failing, since I don't use createGraphGists lately I am commenting out
+  // classpath = sourceSets.Main.runtimeClasspath
   ext.srcDir = new File( projectDir, 'src/test/groovy' )
   ext.destDir = new File( projectDir, 'out/graphGists' )
   inputs.dir  srcDir 
