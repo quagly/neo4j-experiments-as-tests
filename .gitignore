@@ -1,4 +1,17 @@
+# don't keep gradle cache
 .gradle
-*.swp
+# ignore vim temp files
+*.sw[op]
+# ignore OSX 'folder' metadata
+.DS_Store
+# ignore compiled classes
+*.class
+# and jars
+*.jar
+# except for Gradle wrapper jar file 
+!gradle-wrapper.jar
+# don't keep any build stuff
 /build
+# or my custom output directory.
+# is there a standard place in gradle for custom output?
 /out
