@@ -6,7 +6,7 @@ def neo4jVer  = '2.1.2'
 // unable to resolve class ExecutionEngine
 // engine = new ExecutionEngine( graphDb )
 def groovyVer = '2.4.13'
-def spockVer = '0.7-groovy-2.0'
+def spockVer = '1.1-groovy-2.4'
 // note GradleVersion is an internal class and may change
 // I have not found another way to print gradle version
 // use of GradleVersion is now deprecated and will fail in version 5.
