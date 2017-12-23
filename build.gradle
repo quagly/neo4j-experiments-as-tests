@@ -7,11 +7,15 @@ def neo4jVer  = '2.1.2'
 // engine = new ExecutionEngine( graphDb )
 def groovyVer = '2.4.13'
 def spockVer = '1.1-groovy-2.4'
-// note GradleVersion is an internal class and may change
-// I have not found another way to print gradle version
-// use of GradleVersion is now deprecated and will fail in version 5.
-// What is the alternative?
-println GradleVersion.current()
+
+println """\
+Welcome to Gradle $gradle.gradleVersion - http://www.gradle.org
+Gradle home is set to: $gradle.gradleHomeDir
+Gradle user directory is set to: $gradle.gradleUserHomeDir
+
+ Base directory: $projectDir
+ Running script ${relativePath(buildFile)}
+ """
 
 defaultTasks 'test'
 
