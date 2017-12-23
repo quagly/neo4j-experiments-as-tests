@@ -6,7 +6,9 @@ def groovyVer = '2.4.4'
 def spockVer = '0.7-groovy-2.0'
 // note GradleVersion is an internal class and may change
 // I have not found another way to print gradle version
-println GradleVersion.current() 
+// use of GradleVersion is now deprecated and will fail in version 5.
+// What is the alternative?
+println GradleVersion.current()
 
 defaultTasks 'test'
 
@@ -19,7 +21,7 @@ dependencies {
   compile "org.codehaus.groovy:groovy-all:${groovyVer}"
   compile "org.neo4j:neo4j:${neo4jVer}" // don't need all of neo4j, and only testing now anyway
 
-  testCompile "org.spockframework:spock-core:${spockVer}" 
+  testCompile "org.spockframework:spock-core:${spockVer}"
   testCompile "org.neo4j:neo4j-kernel:${neo4jVer}:tests"
 
 }
@@ -42,7 +44,7 @@ task createGraphGists ( dependsOn: 'classes', type: JavaExec ) {
   // classpath = sourceSets.Main.runtimeClasspath
   ext.srcDir = new File( projectDir, 'src/test/groovy' )
   ext.destDir = new File( projectDir, 'out/graphGists' )
-  inputs.dir  srcDir 
+  inputs.dir  srcDir
   outputs.dir destDir
   destDir.mkdirs()
 }
@@ -55,7 +57,7 @@ task createGroovyConfig {
   ext.configSlurperTest = new File( projectDir, "/src/test/resources/project.groovy")
   // can't use outputs as changes made here will never apply
   // becaues the output files haven't changed
-  //outputs.file configSlurperMain 
+  //outputs.file configSlurperMain
   //outputs.file configSlurperTest
   ext.configString = """\
   projectDir =  '${projectDir}'
