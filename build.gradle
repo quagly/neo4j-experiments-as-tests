@@ -2,7 +2,10 @@ apply plugin: 'base'
 apply plugin: 'groovy'
 
 def neo4jVer  = '2.1.2'
-def groovyVer = '2.4.4'
+// api changes cause build to fail in neo4j version 3.3
+// unable to resolve class ExecutionEngine
+// engine = new ExecutionEngine( graphDb )
+def groovyVer = '2.4.13'
 def spockVer = '0.7-groovy-2.0'
 // note GradleVersion is an internal class and may change
 // I have not found another way to print gradle version
