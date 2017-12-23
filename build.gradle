@@ -1,7 +1,8 @@
 apply plugin: 'base'
 apply plugin: 'groovy'
 
-def neo4jVer  = '2.1.2'
+//def neo4jVer  = '2.1.2'
+def neo4jVer  = '2.3.12'
 // api changes cause build to fail in neo4j version 3.3
 // unable to resolve class ExecutionEngine
 // engine = new ExecutionEngine( graphDb )
@@ -30,6 +31,8 @@ dependencies {
 
   testCompile "org.spockframework:spock-core:${spockVer}"
   testCompile "org.neo4j:neo4j-kernel:${neo4jVer}:tests"
+  // as of neo4j 2.2 need to add neo4j-io as a separate dependency for tests
+  testCompile "org.neo4j:neo4j-io:${neo4jVer}:tests"
 
 }
 
