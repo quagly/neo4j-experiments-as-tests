@@ -1,6 +1,6 @@
 import spock.lang.*
 import org.neo4j.graphdb.*
-import org.neo4j.cypher.javacompat.* 
+import org.neo4j.cypher.javacompat.*
 import org.neo4j.test.*
 
 /**
@@ -10,23 +10,36 @@ import org.neo4j.test.*
 class Neo4jCypherCollection extends spock.lang.Specification {
 
   @Shared GraphDatabaseService graphDb
-  @Shared ExecutionEngine engine
 
   static String staticCypher
   static QueryStatistics staticQs
 
   // instance
   String cypher
-  ExecutionResult er
+  Result er
   QueryStatistics qs
   def result = []
 
 
   def setupSpec() {
-    graphDb = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().newGraphDatabase()
-    engine = new ExecutionEngine( graphDb )
 
-    staticCypher = """ 
+    // for parallel execution of tests, each test class needs its own test database
+    // or locking issues will occur
+    // see https://neo4j.com/docs/java-reference/current/
+
+    def ostempdir = System.getProperty('java.io.tmpdir')
+    // Get the executed script as a (java) File
+    File scriptFile = new File(getClass().protectionDomain.codeSource.location.path)
+    // This holds the file name like "myscript.groovy"
+    def scriptName = scriptFile.getName()
+    def suffix = scriptName.take(scriptName.lastIndexOf('.'))
+    File tempDir = new File(ostempdir, suffix)
+
+    // better to create a testDirectory utility that supplies a test directory
+    // graphDb = new TestGraphDatabaseFactory().newImpermanentDatabase( testDirectory.directory() )
+    graphDb = new TestGraphDatabaseFactory().newImpermanentDatabase( tempDir )
+
+    staticCypher = """
       CREATE
           ( socrates:Philosopher  {name:'Socrates', uri: 'http://dbpedia.org/resource/Socrates' })
         , ( plato:Philosopher     {name:'Plato', uri: 'http://dbpedia.org/resource/Plato' })
@@ -44,29 +57,34 @@ class Neo4jCypherCollection extends spock.lang.Specification {
         , ( content:SchoolType { name: 'content', uri: 'http://dbpedia.org/class/yago/Content105809192' })
         , ( knowledge:SchoolType { name: 'knowledge', uri: 'http://dbpedia.org/class/yago/Cognition100023271' })
         , ( change:SchoolType { name: 'change', uri: 'http://dbpedia.org/class/yago/Change100191142' })
-        , socrates-[:INFLUENCES]->plato
-        , socrates-[:INFLUENCES]->aristotle
-        , plato-[:INFLUENCES]->aristotle
-        , socrates-[:MEMBER_OF]->ancient_greek_school
-        , plato-[:MEMBER_OF]->platonism_school
-        , aristotle-[:MEMBER_OF]->peripatetic_school
-        , socrates-[:MEMBER_OF]->ancient_era
-        , plato-[:MEMBER_OF]->ancient_era
-        , aristotle-[:MEMBER_OF]->ancient_era
-        , platonism_school-[:TYPE_OF]->philo_tradition
-        , platonism_school-[:TYPE_OF]->philo_movement
-        , peripatetic_school-[:TYPE_OF]->philo_movement
-        , peripatetic_school-[:TYPE_OF]->philo_ancient_school
-        , philo_ancient_school-[:SUBCLASS_OF]->school
-        , philo_movement-[:SUBCLASS_OF]->movement
-        , philo_tradition-[:SUBCLASS_OF]->tradition
-        , tradition-[:SUBCLASS_OF]->content
-        , content-[:SUBCLASS_OF]->knowledge
-        , movement-[:SUBCLASS_OF]->change
+        , (socrates)-[:INFLUENCES]->(plato)
+        , (socrates)-[:INFLUENCES]->(aristotle)
+        , (plato)-[:INFLUENCES]->(aristotle)
+        , (socrates)-[:MEMBER_OF]->(ancient_greek_school)
+        , (plato)-[:MEMBER_OF]->(platonism_school)
+        , (aristotle)-[:MEMBER_OF]->(peripatetic_school)
+        , (socrates)-[:MEMBER_OF]->(ancient_era)
+        , (plato)-[:MEMBER_OF]->(ancient_era)
+        , (aristotle)-[:MEMBER_OF]->(ancient_era)
+        , (platonism_school)-[:TYPE_OF]->(philo_tradition)
+        , (platonism_school)-[:TYPE_OF]->(philo_movement)
+        , (peripatetic_school)-[:TYPE_OF]->(philo_movement)
+        , (peripatetic_school)-[:TYPE_OF]->(philo_ancient_school)
+        , (philo_ancient_school)-[:SUBCLASS_OF]->(school)
+        , (philo_movement)-[:SUBCLASS_OF]->(movement)
+        , (philo_tradition)-[:SUBCLASS_OF]->(tradition)
+        , (tradition)-[:SUBCLASS_OF]->(content)
+        , (content)-[:SUBCLASS_OF]->(knowledge)
+        , (movement)-[:SUBCLASS_OF]->(change)
     """
 
-    staticQs = engine.execute(staticCypher).queryStatistics
+    staticQs = graphDb.execute(staticCypher).queryStatistics
 
+  }
+
+  def cleanupSpec() {
+    graphDb.shutdown()
+    // no need to remove temporary directory, it appears that the shutdown does that
   }
 
   def "validate setupSpec"() {
@@ -89,7 +107,7 @@ class Neo4jCypherCollection extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.columnAs("PhilosopherNames").toList().sort()
 
@@ -105,13 +123,13 @@ class Neo4jCypherCollection extends spock.lang.Specification {
   setup: "query to collect all nodes between Socrates and Aristotle inclusive"
   // shows how to collect all NODES in the path and extract thier names
     cypher = """
-       MATCH p=(a)-->(b)-->(c) 
+       MATCH p=(a)-->(b)-->(c)
        WHERE a.name = 'Socrates' and c.name = 'Aristotle'
        RETURN EXTRACT( n IN NODES(p) | n.name )  as PhilosopherNames
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.columnAs("PhilosopherNames").toList()
 
@@ -120,8 +138,8 @@ class Neo4jCypherCollection extends spock.lang.Specification {
     // result is a single List of three nodes so size is one array
     // actually it is scala.collection.convert.Wrappers$SeqWrapper
     // instead of List which is why toList() is called below
-    // consider converting result to list of lists in when: 
-    result.size() == 1 
+    // consider converting result to list of lists in when:
+    result.size() == 1
     result.first().toList().sort().equals(['Aristotle', 'Plato', 'Socrates'])
 
   }
@@ -137,11 +155,11 @@ class Neo4jCypherCollection extends spock.lang.Specification {
   // shows how to collect all RELATIONSHIPS in a path and extract thier names
     cypher = """
        MATCH p=(a:Philosopher)-[*]->(b:SchoolType)
-       RETURN DISTINCT EXTRACT( r in RELATIONSHIPS(p)| type(r) ) as RelationshipTypes  
+       RETURN DISTINCT EXTRACT( r in RELATIONSHIPS(p)| type(r) ) as RelationshipTypes
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     // result is a list of lists, need to get distinct values from all lists
     result = er.columnAs("RelationshipTypes").toList()
@@ -150,28 +168,28 @@ class Neo4jCypherCollection extends spock.lang.Specification {
 
   then: "validate expected stats"
     ! qs.containsUpdates()
-    relTypes.size() == 4 
+    relTypes.size() == 4
     relTypes.sort().equals(['INFLUENCES', 'MEMBER_OF', 'SUBCLASS_OF', 'TYPE_OF'])
   }
 
   def "collect distinct relationship types"() {
 
   setup: "query to collect all Relationship Types from Philosopher Nodes to SchoolType nodes"
-  // shows how to collect all RELATIONSHIPS for all paths and extract thier distinct types 
-  // note use of reduce to simulate a nested loop 
-  // and CASE to append an empty list if type exists for distinct 
+  // shows how to collect all RELATIONSHIPS for all paths and extract thier distinct types
+  // note use of reduce to simulate a nested loop
+  // and CASE to append an empty list if type exists for distinct
     cypher = """
-      MATCH p=(a:Philosopher)-[rel*]->(b:SchoolType) 
-      WITH collect(rel) AS allr 
-      RETURN (REDUCE(allDistR =[], rcol IN allr | 
-        reduce(distR = allDistR, r IN rcol | 
+      MATCH p=(a:Philosopher)-[rel*]->(b:SchoolType)
+      WITH collect(rel) AS allr
+      RETURN (REDUCE(allDistR =[], rcol IN allr |
+        reduce(distR = allDistR, r IN rcol |
           distR + CASE WHEN type(r) IN distR  THEN []  ELSE type(r) END
         )
       )) as RelationshipTypes
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.columnAs("RelationshipTypes").toList()
     //println result.toList().first().toList().sort()
@@ -179,7 +197,7 @@ class Neo4jCypherCollection extends spock.lang.Specification {
   then: "validate expected stats"
     ! qs.containsUpdates()
     // result contains one collection
-    result.size() == 1 
+    result.size() == 1
     result.toList().first().toList().sort().equals(['INFLUENCES', 'MEMBER_OF', 'SUBCLASS_OF', 'TYPE_OF'])
   }
 

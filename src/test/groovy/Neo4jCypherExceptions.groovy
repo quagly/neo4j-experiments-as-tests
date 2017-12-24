@@ -1,23 +1,40 @@
 import spock.lang.*
 import org.neo4j.graphdb.*
-import org.neo4j.cypher.javacompat.* 
+import org.neo4j.cypher.javacompat.*
 import org.neo4j.test.*
 
 class Neo4jCypherExceptions extends spock.lang.Specification {
 
   // class
   @Shared GraphDatabaseService graphDb
-  @Shared ExecutionEngine engine
 
   // instance
   String cypher
-  ExecutionResult er
+  Result er
   QueryStatistics qs
   def result = []
 
   def setupSpec() {
-    graphDb = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().newGraphDatabase()
-    engine = new ExecutionEngine( graphDb )
+    // for parallel execution of tests, each test class needs its own test database
+    // or locking issues will occur
+    // see https://neo4j.com/docs/java-reference/current/
+
+    def ostempdir = System.getProperty('java.io.tmpdir')
+    // Get the executed script as a (java) File
+    File scriptFile = new File(getClass().protectionDomain.codeSource.location.path)
+    // This holds the file name like "myscript.groovy"
+    def scriptName = scriptFile.getName()
+    def suffix = scriptName.take(scriptName.lastIndexOf('.'))
+    File tempDir = new File(ostempdir, suffix)
+
+    // better to create a testDirectory utility that supplies a test directory
+    // graphDb = new TestGraphDatabaseFactory().newImpermanentDatabase( testDirectory.directory() )
+    graphDb = new TestGraphDatabaseFactory().newImpermanentDatabase( tempDir )
+  }
+
+  def cleanupSpec() {
+    graphDb.shutdown()
+    // no need to remove temporary directory, it appears that the shutdown does that
   }
 
   def "invalid cypher syntax"() {
@@ -26,10 +43,10 @@ class Neo4jCypherExceptions extends spock.lang.Specification {
     cypher = "CRETE (n {name : 'Kant'})"
 
   when: "execute query and throw exception"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
 
   then: "validate correct exception thrown"
-    thrown org.neo4j.cypher.SyntaxException 
+    thrown org.neo4j.graphdb.QueryExecutionException
 
   }
 
@@ -37,7 +54,7 @@ class Neo4jCypherExceptions extends spock.lang.Specification {
 
   setup: "create and return"
     def cypherCreate = """
-      CREATE (n:Philosopher {name : 'Immanuel'}) 
+      CREATE (n:Philosopher {name : 'Immanuel'})
     """
 
     def cypherQuery = """
@@ -48,16 +65,16 @@ class Neo4jCypherExceptions extends spock.lang.Specification {
     """
 
   when: "execute query and throw exception"
-    er = engine.execute(cypherCreate)
-    er = engine.execute(cypherQuery)
+    er = graphDb.execute(cypherCreate)
+    er = graphDb.execute(cypherQuery)
     result = er.columnAs("kant").toList()
     // accessing properties outside of transaction throws exeception
-    // all iterators get closed automatically when using 
+    // all iterators get closed automatically when using
     // implicit cypher transactions
     println result.first().getProperty("lastName")
 
   then: "validate correct exception thrown"
-    thrown org.neo4j.graphdb.NotInTransactionException 
+    thrown org.neo4j.graphdb.NotInTransactionException
 
   }
 
@@ -70,12 +87,12 @@ class Neo4jCypherExceptions extends spock.lang.Specification {
     """
 
   when: "execute query and throw exception"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     // accessing properties outside of transaction throws exeception
     result = er.columnAs("philosopher").toList().collect { it.getProperty("name") }.sort()
 
   then: "validate correct exception thrown"
-    thrown org.neo4j.graphdb.NotInTransactionException 
+    thrown org.neo4j.graphdb.NotInTransactionException
 
   }
 
@@ -88,7 +105,7 @@ class Neo4jCypherExceptions extends spock.lang.Specification {
   setup: "get philosophers"
     // define contraint
     def cypherConstraint = """
-      CREATE CONSTRAINT ON (p:Philosopher) 
+      CREATE CONSTRAINT ON (p:Philosopher)
       ASSERT p.name IS UNIQUE
     """
     // duplicate names
@@ -99,17 +116,14 @@ class Neo4jCypherExceptions extends spock.lang.Specification {
     """
 
   when: "create contraint and violate it to throw exception"
-    er = engine.execute(cypherConstraint)
+    er = graphDb.execute(cypherConstraint)
     qs = er.queryStatistics
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
 
   then: "validate correct exception thrown"
     qs.constraintsAdded == 1
-    thrown org.neo4j.cypher.CypherExecutionException
+    thrown org.neo4j.graphdb.QueryExecutionException
 
   }
 
-  def cleanupSpec() {
-    graphDb.shutdown()
-  }
-}  
+}

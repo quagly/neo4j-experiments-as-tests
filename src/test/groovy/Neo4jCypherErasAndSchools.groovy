@@ -1,10 +1,10 @@
 import spock.lang.*
 import org.neo4j.graphdb.*
-import org.neo4j.cypher.javacompat.* 
+import org.neo4j.cypher.javacompat.*
 import org.neo4j.test.*
 
 /**
- * Demonstrate more complex examples 
+ * Demonstrate more complex examples
  * using philosophers, eras, and schools
  * examples with direct relationships
  **/
@@ -12,29 +12,42 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
 
   // class
   @Shared GraphDatabaseService graphDb
-  @Shared ExecutionEngine engine
 
   static String staticCypher
   static QueryStatistics staticQs
 
   // instance
-  String cypher   
-  ExecutionResult er
+  String cypher
+  Result er
   QueryStatistics qs
   def result = []
 
   def setupSpec() {
-    graphDb = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().newGraphDatabase()
-    engine  = new ExecutionEngine( graphDb )
+    // for parallel execution of tests, each test class needs its own test database
+    // or locking issues will occur
+    // see https://neo4j.com/docs/java-reference/current/
 
-    staticCypher = """ 
+    def ostempdir = System.getProperty('java.io.tmpdir')
+    // Get the executed script as a (java) File
+    File scriptFile = new File(getClass().protectionDomain.codeSource.location.path)
+    // This holds the file name like "myscript.groovy"
+    def scriptName = scriptFile.getName()
+    def suffix = scriptName.take(scriptName.lastIndexOf('.'))
+    File tempDir = new File(ostempdir, suffix)
+
+    // better to create a testDirectory utility that supplies a test directory
+    // graphDb = new TestGraphDatabaseFactory().newImpermanentDatabase( testDirectory.directory() )
+    graphDb = new TestGraphDatabaseFactory().newImpermanentDatabase( tempDir )
+
+
+    staticCypher = """
       CREATE
           ( socrates:Philosopher  {name:'Socrates', uri: 'http://dbpedia.org/resource/Socrates' })
         , ( plato:Philosopher     {name:'Plato', uri: 'http://dbpedia.org/resource/Plato' })
         , ( aristotle:Philosopher { name: 'Aristotle' , uri: 'http://dbpedia.org/resource/Aristotle' })
-        , ( ancient_era:Era       { name: 'Ancient philosophy', uri: 'http://dbpedia.org/resource/Ancient_philosophy' }) 
-        , ( platonism_school:School { name: 'Platonism', uri: 'http://dbpedia.org/resource/Platonism' }) 
-        , ( peripatetic_school:School { name: 'Peripatetic school', uri: 'http://dbpedia.org/resource/Peripatetic_school' }) 
+        , ( ancient_era:Era       { name: 'Ancient philosophy', uri: 'http://dbpedia.org/resource/Ancient_philosophy' })
+        , ( platonism_school:School { name: 'Platonism', uri: 'http://dbpedia.org/resource/Platonism' })
+        , ( peripatetic_school:School { name: 'Peripatetic school', uri: 'http://dbpedia.org/resource/Peripatetic_school' })
         , ( ancient_greek_school:School { name: 'Ancient Greek philosophy', uri: 'http://dbpedia.org/resource/Ancient_Greek_philosophy' })
         , ( philo_tradition:SchoolType { name: 'Philosophical traditions', uri: 'http://dbpedia.org/class/yago/PhilosophicalTraditions' })
         , ( philo_movement:SchoolType { name: 'Philosophical movements', uri: 'http://dbpedia.org/class/yago/PhilosophicalMovements' })
@@ -45,37 +58,42 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
         , ( content:SchoolType { name: 'content', uri: 'http://dbpedia.org/class/yago/Content105809192' })
         , ( knowledge:SchoolType { name: 'knowledge', uri: 'http://dbpedia.org/class/yago/Cognition100023271' })
         , ( change:SchoolType { name: 'change', uri: 'http://dbpedia.org/class/yago/Change100191142' })
-        , socrates-[:INFLUENCES]->plato
-        , socrates-[:INFLUENCES]->aristotle
-        , plato-[:INFLUENCES]->aristotle
-        , socrates-[:MEMBER_OF]->ancient_greek_school
-        , plato-[:MEMBER_OF]->platonism_school
-        , aristotle-[:MEMBER_OF]->peripatetic_school
-        , socrates-[:MEMBER_OF]->ancient_era
-        , plato-[:MEMBER_OF]->ancient_era
-        , aristotle-[:MEMBER_OF]->ancient_era
-        , platonism_school-[:TYPE_OF]->philo_tradition
-        , platonism_school-[:TYPE_OF]->philo_movement
-        , peripatetic_school-[:TYPE_OF]->philo_movement
-        , peripatetic_school-[:TYPE_OF]->philo_ancient_school
-        , philo_ancient_school-[:SUBCLASS_OF]->school
-        , philo_movement-[:SUBCLASS_OF]->movement
-        , philo_tradition-[:SUBCLASS_OF]->tradition
-        , tradition-[:SUBCLASS_OF]->content
-        , content-[:SUBCLASS_OF]->knowledge
-        , movement-[:SUBCLASS_OF]->change
+        , (socrates)-[:INFLUENCES]->(plato)
+        , (socrates)-[:INFLUENCES]->(aristotle)
+        , (plato)-[:INFLUENCES]->(aristotle)
+        , (socrates)-[:MEMBER_OF]->(ancient_greek_school)
+        , (plato)-[:MEMBER_OF]->(platonism_school)
+        , (aristotle)-[:MEMBER_OF]->(peripatetic_school)
+        , (socrates)-[:MEMBER_OF]->(ancient_era)
+        , (plato)-[:MEMBER_OF]->(ancient_era)
+        , (aristotle)-[:MEMBER_OF]->(ancient_era)
+        , (platonism_school)-[:TYPE_OF]->(philo_tradition)
+        , (platonism_school)-[:TYPE_OF]->(philo_movement)
+        , (peripatetic_school)-[:TYPE_OF]->(philo_movement)
+        , (peripatetic_school)-[:TYPE_OF]->(philo_ancient_school)
+        , (philo_ancient_school)-[:SUBCLASS_OF]->(school)
+        , (philo_movement)-[:SUBCLASS_OF]->(movement)
+        , (philo_tradition)-[:SUBCLASS_OF]->(tradition)
+        , (tradition)-[:SUBCLASS_OF]->(content)
+        , (content)-[:SUBCLASS_OF]->(knowledge)
+        , (movement)-[:SUBCLASS_OF]->(change)
     """
-    staticQs = engine.execute(staticCypher).queryStatistics
+    staticQs = graphDb.execute(staticCypher).queryStatistics
 
   }
 
+  def cleanupSpec() {
+    graphDb.shutdown()
+    // no need to remove temporary directory, it appears that the shutdown does that
+  }
+
   def "validate setupSpec"() {
-  expect: 
+  expect:
     staticQs.containsUpdates()
-    staticQs.nodesCreated == 16 
+    staticQs.nodesCreated == 16
     staticQs.relationshipsCreated == 19
-    staticQs.propertiesSet == 32 
-    staticQs.labelsAdded == 16 
+    staticQs.propertiesSet == 32
+    staticQs.labelsAdded == 16
   }
 
   def "validate nodes"() {
@@ -88,7 +106,7 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.columnAs("PhilosopherNames").toList()
 
@@ -101,16 +119,16 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
   def "all ancient era phiosophers"() {
 
   setup: "query to return all ancient philosophers "
-    // get philosopher with any direct relationship to 
+    // get philosopher with any direct relationship to
     // ancient philosophy era
     cypher = """
        MATCH (p:Philosopher)-[]->(e:Era)
-       WHERE e.name = 'Ancient philosophy' 
+       WHERE e.name = 'Ancient philosophy'
        RETURN p.name as PhilosopherNames
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.columnAs("PhilosopherNames").toList()
 
@@ -122,8 +140,8 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
   def "all philosophers who are members of a school with a school type"() {
 
   setup: "query to return all school type philosophers"
-    /* get philosophers who are a member of a 
-     * school that has a school type 
+    /* get philosophers who are a member of a
+     * school that has a school type
      */
     cypher = """
        MATCH (p:Philosopher)-[:MEMBER_OF]->(s:School)-[:TYPE_OF]->(st:SchoolType)
@@ -131,7 +149,7 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.columnAs("PhilosopherNames").toList()
 
@@ -143,8 +161,8 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
   def "all philosophers who are members of school of type Philosophical movements"() {
 
   setup: "query to return all school type philosophers"
-    /* get philosophers who are a member of a 
-     * school that has a school type of 'Philosophical movements' 
+    /* get philosophers who are a member of a
+     * school that has a school type of 'Philosophical movements'
      */
     cypher = """
        MATCH (p:Philosopher)-[:MEMBER_OF]->(s:School)-[:TYPE_OF]->(st:SchoolType)
@@ -153,10 +171,10 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.iterator().toList()
-    //println result 
+    //println result
 
 
   then: "validate expected stats"
@@ -164,7 +182,7 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
     result.sort().equals([
       [   SchoolName:'Peripatetic school'
         , PhilosopherName:'Aristotle'
-      ],[ 
+      ],[
           SchoolName:'Platonism'
         , PhilosopherName:'Plato'
       ]
@@ -175,8 +193,8 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
   def "all philosophers who are members of school of type movements"() {
 
   setup: "query to return all movement school type philosophers"
-    /* get philosophers who are a member of a 
-     * school that has a school type of 'movements' 
+    /* get philosophers who are a member of a
+     * school that has a school type of 'movements'
      */
     cypher = """
        MATCH (p:Philosopher)-[r:MEMBER_OF]->(s:School)-[:TYPE_OF]->(st:SchoolType)-[:SUBCLASS_OF]->(st2:SchoolType)
@@ -185,7 +203,7 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.iterator().toList()
     //println result
@@ -202,7 +220,7 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
         , sName:'Peripatetic school']
     ])
   }
-  
+
    def "philosophers from the same school type class with influence"() {
   /* when testing for the same school type class cannot use just a MATCH.
    * need to filter that the school type class is the same on the where clause
@@ -219,10 +237,10 @@ class Neo4jCypherErasAndSchools extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.iterator().toList()
-    //println result 
+    //println result
 
   then: "validate expected stats"
     ! qs.containsUpdates()

@@ -1,6 +1,6 @@
 import spock.lang.*
 import org.neo4j.graphdb.*
-import org.neo4j.cypher.javacompat.* 
+import org.neo4j.cypher.javacompat.*
 import org.neo4j.test.*
 
 /**
@@ -10,39 +10,52 @@ import org.neo4j.test.*
 class Neo4jCypherSimplePath extends spock.lang.Specification {
 
   @Shared GraphDatabaseService graphDb
-  @Shared ExecutionEngine engine
 
   //instance
   String cypher   // cypher query string
-  ExecutionResult er
+  Result er
   QueryStatistics qs
   def result = []
 
 
   def setupSpec() {
-    graphDb = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().newGraphDatabase()
-    engine = new ExecutionEngine( graphDb )
+    // graphDb = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().newGraphDatabase()
+    def ostempdir = System.getProperty('java.io.tmpdir')
+    // Get the executed script as a (java) File
+    File scriptFile = new File(getClass().protectionDomain.codeSource.location.path)
+    // This holds the file name like "myscript.groovy"
+    def scriptName = scriptFile.getName()
+    def suffix = scriptName.take(scriptName.lastIndexOf('.'))
+    File tempDir = new File(ostempdir, suffix)
+
+    // better to create a testDirectory utility that supplies a test directory
+    // graphDb = new TestGraphDatabaseFactory().newImpermanentDatabase( testDirectory.directory() )
+    graphDb = new TestGraphDatabaseFactory().newImpermanentDatabase( tempDir )
+  }
+
+  def cleanupSpec() {
+    graphDb.shutdown()
   }
 
   def "initialize nodes and relations"() {
 
-  setup: "query to create all nodes and relationships in one statement" 
-    cypher = """ 
+  setup: "query to create all nodes and relationships in one statement"
+    cypher = """
       CREATE (socrates:Philosopher {name:'Socrates', url : 'http://dbpedia.org/resource/Socrates' })
         , (plato:Philosopher {name:'Plato', url : 'http://dbpedia.org/resource/Plato' })
         , ( aristotle:Philosopher { name : 'Aristotle' , url : 'http://dbpedia.org/resource/Aristotle' })
-        , socrates-[:INFLUENCES]->plato
-        , socrates-[:INFLUENCES]->aristotle
-        , plato-[:INFLUENCES]->aristotle
+        , (socrates)-[:INFLUENCES]->(plato)
+        , (socrates)-[:INFLUENCES]->(aristotle)
+        , (plato)-[:INFLUENCES]->(aristotle)
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
 
   then: "validate expected stats"
     qs.containsUpdates()
-    qs.nodesCreated == 3 
+    qs.nodesCreated == 3
     qs.relationshipsCreated == 3
     qs.propertiesSet == 6
     qs.labelsAdded == 3
@@ -58,7 +71,7 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.columnAs("PhilosopherNames").toList().sort()
 
@@ -72,14 +85,14 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
   def "validate relationships"() {
 
   setup: "query to return philosopher pairs of who directly influences who"
-    // find philosophers with an outgoing INFLUENCES relationship 
+    // find philosophers with an outgoing INFLUENCES relationship
     cypher = """
        MATCH (a:Philosopher)-[:INFLUENCES]->(b:Philosopher)
        RETURN a.name as InfluencerName, b.name as InfluenceeName
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.iterator().toList().sort()
     //println result
@@ -110,7 +123,7 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.iterator().toList().sort()
     //println result
@@ -136,7 +149,7 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.iterator().toList().sort()
     //println result
@@ -169,7 +182,7 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.iterator().toList().sort()
     //println result
@@ -192,28 +205,28 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
     cypher = """
        MATCH path = (a:Philosopher)-[:INFLUENCES*]->(b:Philosopher)
        WHERE  b.name = 'Aristotle'
-       RETURN path 
+       RETURN path
     """
     Transaction tx
 
   when: "execute query and capture stats"
     // I don't understand why getting this result requires a transaction context
     // maybe try again in a future version ( this is 2.0.0M6 )
-    tx = graphDb.beginTx()
-    try {
-      er = engine.execute(cypher)
-      qs = er.queryStatistics
-      result = er.iterator().toList().sort()
-      tx.success()
-    } finally {
-      tx.finish()
-    }
+    // tx = graphDb.beginTx()
+    // try {
+    er = graphDb.execute(cypher)
+    qs = er.queryStatistics
+    result = er.iterator().toList().sort()
+    // tx.success()
+    // } finally {
+    //  tx.finish()
+    // }
 
   then: "validate expected stats"
-      // because paths return internal ids 
+      // because paths return internal ids
       // just checking that we got three of them rather than the values
       // could also return length(path) and verify = [1,2]
-      // could also return NODES(path) or for more control EXTRACT(path) 
+      // could also return NODES(path) or for more control EXTRACT(path)
       // specifying what to extract.  See cypher doc on collection functions
       ! qs.containsUpdates()
       result.size() == 3
@@ -223,7 +236,7 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
   def "shortest path influencers of Aristotle"() {
 
   setup: "query to return shortest path and length of path"
-  // there are two paths from Socrates to Aristotle, a 1 hop, and a 2 hop.  
+  // there are two paths from Socrates to Aristotle, a 1 hop, and a 2 hop.
   // get the shortest one - a direct relationship
     cypher = """
        MATCH path = shortestPath((a:Philosopher)-[:INFLUENCES*]->(b:Philosopher))
@@ -232,14 +245,14 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
     """
 
   when: "execute query and capture stats"
-    er = engine.execute(cypher)
+    er = graphDb.execute(cypher)
     qs = er.queryStatistics
     result = er.iterator().toList().sort()
     //println result
 
   then: "validate expected stats"
-      // because patterns return internal ids 
-      // just checking length and size 
+      // because patterns return internal ids
+      // just checking length and size
       ! qs.containsUpdates()
       result.size() == 1
       result.equals([
@@ -249,5 +262,6 @@ class Neo4jCypherSimplePath extends spock.lang.Specification {
       ])
 
   }
+
 
 }
